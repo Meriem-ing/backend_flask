@@ -8,6 +8,7 @@ app = Flask(__name__)
 CORS(app)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
 
@@ -55,6 +56,35 @@ def register():
         return jsonify({"message": "Inscription réussie"})
     except Exception as e:
         return jsonify({"message": str(e)}), 400
+@app.route("/users", methods=["GET"])
+def get_users():
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+
+        # 👇 récupérer email, password haché et password en clair
+        cur.execute("""
+            SELECT email, password, password_plain
+            FROM users;
+        """)
+        rows = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        users = []
+        for row in rows:
+            users.append({
+                "email": row[0],
+                "password": row[1],          # password haché
+                "password_plain": row[2]     # password en clair
+            })
+
+        return jsonify(users)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 
 if __name__ == "__main__":
     init_db()
